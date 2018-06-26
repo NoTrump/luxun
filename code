@@ -1,0 +1,106 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr 18 20:11:56 2018
+
+@author: Administrator
+"""
+
+import codecs
+import os;
+import os.path;
+import codecs;
+import jieba;
+import pandas;
+import numpy;
+
+
+with open('E:\PDM\luotuoxiangzi.txt') as f:
+    fileContent= f.read()
+f.close()
+
+#移除停用词
+stopwords = pandas.read_csv(
+    "E:\\PDM\\2.4\\2.4\\StopwordsCN.txt", 
+    encoding='utf8', 
+    index_col=False
+)
+
+
+segments = []
+segs = jieba.cut(fileContent)
+for seg in segs:
+    if seg not in stopwords.stopword.values and len(seg.strip())>1:
+        segments.append(seg)
+seg = []
+for i in range(len(segments)):
+    seg.append(i)
+
+
+segmentDataFrame = pandas.DataFrame({
+    'segment': segments, 
+    'list': seg
+});
+        
+segStat = segmentDataFrame.groupby(
+            by="segment"
+        )["segment"].agg({
+            "计数":numpy.size
+        }).reset_index().sort_values(
+            by="计数",
+            ascending=False
+        );
+        
+import re;
+erhuayin = []
+for i in segStat['segment']:
+    if re.search( r'儿', i):
+        erhuayin.append(i)
+
+dataerhuayin = pandas.DataFrame({
+    '儿化音': erhuayin, 
+    '序号': range(len(erhuayin))
+});
+dataerhuayin.to_csv("E:\\PDM\\2.5\\2.5\\儿化音统计")
+        
+        
+    
+    
+erhuayin = segStat['segment'].filter(regex = '儿')
+segStat.to_csv("E:\\PDM\\2.5\\2.5\\骆驼祥子特征词统计")
+        
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
+wordcloud = WordCloud(
+    font_path='E:\\PDM\\2.4\\simhei.ttf', 
+    background_color="black"
+)
+
+words = segStat.set_index('segment').to_dict()
+
+wordcloud.fit_words(words['计数'])
+plt.figure(figsize=(20,10))
+plt.imshow(wordcloud)
+
+plt.close()
+
+#美化词云
+from scipy.misc import imread
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud, ImageColorGenerator
+
+bimg = imread("E:\\PDM\\2.5\\2.5\\meitu_1.jpg")
+
+wordcloud = WordCloud(
+    background_color="white", 
+    mask=bimg, font_path='E:\\PDM\\2.5\\2.5\\simhei.ttf'
+)
+
+wordcloud = wordcloud.fit_words(words['计数'])
+
+bimgColors = ImageColorGenerator(bimg)
+
+plt.axis("off")
+plt.figure(figsize=(20,10))
+plt.imshow(wordcloud.recolor(color_func=bimgColors))
+plt.show()
